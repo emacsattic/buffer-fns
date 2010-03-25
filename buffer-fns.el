@@ -1,11 +1,11 @@
 ;;; buffer-fns.el --- functions for modifying buffer contents or display
 
-;; Copyright (C) 1991, 92, 93, 94, 95, 96, 97, 98, 99, 00, 06, 2007 Noah S. Friedman
+;; Copyright (C) 1991, 92, 93, 94, 95, 96, 97, 98, 99, 00, 06, 07, 2010 Noah S. Friedman
 
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Maintainer: friedman@splode.com
 
-;; $Id: buffer-fns.el,v 1.22 2007/09/12 19:02:56 friedman Exp $
+;; $Id: buffer-fns.el,v 1.23 2010/03/04 07:34:20 friedman Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -18,9 +18,7 @@
 ;; GNU General Public License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; if not, you can either send email to this
-;; program's maintainer or write to: The Free Software Foundation,
-;; Inc.; 51 Franklin Street, Fifth Floor; Boston, MA 02110-1301, USA.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -437,6 +435,17 @@ every RAND-LIMIT words."
       (if (zerop (random rand-limit))
           (upcase-word 1)
         (forward-word 1)))))
+
+;;;###autoload
+(defun unfill-region (beg end)
+  "Unfill each of the paragraphs in the region.
+This should result in every paragraph consisting of a single line."
+  (interactive "r")
+  (let* ((moby-bignum (if (boundp 'most-positive-fixnum)
+                          most-positive-fixnum
+                        (lsh (lsh -1 1) -1)))
+         (fill-column moby-bignum))
+    (fill-region beg end)))
 
 
 ;;;###autoload

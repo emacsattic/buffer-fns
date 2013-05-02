@@ -5,7 +5,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Maintainer: friedman@splode.com
 
-;; $Id: buffer-fns.el,v 1.23 2010/03/04 07:34:20 friedman Exp $
+;; $Id: buffer-fns.el,v 1.26 2013/04/08 03:57:22 friedman Exp $
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -171,14 +171,18 @@ If called with no prefix argument, toggle current state."
 (defun toggle-mode-line-inverse-video (&optional current-only)
   (interactive)
   (cond ((fboundp 'set-face-attribute)
-         (let ((onp (face-attribute 'modeline :inverse-video))
-               (dt (cdr (assq 'display-type (frame-parameters)))))
-           (set-face-attribute 'modeline
+         ;; Emacs 21 changed modeline to mode-line
+         (let* ((mface (if (facep 'mode-line) 'mode-line 'modeline))
+                (onp (face-attribute mface :inverse-video))
+                (dt (cdr (assq 'display-type (frame-parameters)))))
+           (set-face-attribute mface
                                (and current-only (selected-frame))
                                :inverse-video (not onp))
-           ;; This should be toggled on mono frames; in color frames, this
-           ;; must always be t to use the face attribute.
-           (setq mode-line-inverse-video (or (eq dt 'color) (not onp)))
+           ;; This variable was removed in Emacs 25.
+           (when (boundp 'mode-line-inverse-video)
+             ;; This should be toggled on mono frames; in color frames, this
+             ;; must always be t to use the face attribute.
+             (setq mode-line-inverse-video (or (eq dt 'color) (not onp))))
            (force-mode-line-update (not current-only))))
         (t
          (setq mode-line-inverse-video (not mode-line-inverse-video))
@@ -594,6 +598,47 @@ just like \\[negative-argument] \\[capitalize-word]."
                                 (cons (buffer-name) 0)
                               (buffer-name))))
          current-prefix-arg)))
+
+;;;###autoload
+(defun copy-and-comment-lines (beg end)
+  "Insert a copy of the lines in region and comment them.
+When transient-mark-mode is enabled, if no region is active then only the
+current line is acted upon.
+
+If the region begins or ends in the middle of a line, that entire line is
+copied, even if the region is narrowed to the middle of a line.
+The copied lines are commented according to mode.
+
+Current position is preserved."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (widen)
+      (when (and transient-mark-mode (not (use-region-p)))
+        (setq beg (line-beginning-position)
+              end (line-beginning-position 2)))
+
+      (goto-char beg)
+      (setq beg (line-beginning-position))
+      (goto-char end)
+      (unless (= (point) (line-beginning-position))
+        (setq end (line-beginning-position 2)))
+
+      (goto-char beg)
+      (insert-before-markers (buffer-substring-no-properties beg end))
+      (comment-region beg end))
+
+    ;; Don't modify region or display if called as a function.
+    (when (called-interactively-p 'all)
+      ;; If narrowed, make sure newly commented lines are visible in the
+      ;; narrowed region.
+      (when (> (point-min) beg)
+        (narrow-to-region beg (point-max)))
+
+      ;; Make sure newly commented lines are visible in the window if at the
+      ;; very top.
+      (unless (pos-visible-in-window-p beg)
+        (set-window-start (selected-window) beg)))))
 
 
 ;;; display-table functions

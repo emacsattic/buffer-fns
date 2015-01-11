@@ -1,24 +1,9 @@
 ;;; buffer-fns.el --- functions for modifying buffer contents or display
 
-;; Copyright (C) 1991, 92, 93, 94, 95, 96, 97, 98, 99, 00, 06, 07, 2010 Noah S. Friedman
-
 ;; Author: Noah Friedman <friedman@splode.com>
-;; Maintainer: friedman@splode.com
+;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.26 2013/04/08 03:57:22 friedman Exp $
-
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
-;;
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-;;
-;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; $Id: buffer-fns.el,v 1.28 2014/12/12 22:59:16 friedman Exp $
 
 ;;; Commentary:
 
@@ -29,6 +14,7 @@
 
 ;;; Code:
 
+(require 'rect)
 (require 'list-fns)
 (require 'emacs-variants)
 
@@ -58,7 +44,7 @@ of previous VARs."
 ;;; functions for operating on rectangles
 
 (defun apply-on-rectangle-region-points (fun beg end &rest args)
-  "Like `apply-on-rectangle', but pass points in the buffer instead of columns."
+  "Like `apply-on-rectangle', but pass points in the buffer to FUN instead of columns."
   (apply-on-rectangle
    (lambda (bcol ecol)
      (apply fun
@@ -84,6 +70,54 @@ of previous VARs."
   "Convert the marked rectangle to upper case."
   (interactive "r")
   (apply-on-rectangle-region-points 'upcase-region beg end))
+
+(defun capitalize-rectangle (beg end)
+  "Capitalize all the words in the marked rectangle."
+  (interactive "r")
+  (apply-on-rectangle-region-points 'capitalize-region beg end))
+
+
+;;; Smallcaps commands
+;;; Inspired by discussions with Vadim Nasardinov on Google+, c. 2014-12
+;;; https://plus.google.com/+VadimNasardinov/posts/6rjqB8zvzYk
+
+(defconst smallcaps-table
+  (when (fboundp 'ucs-names)
+    (let ((tbl (make-vector (- ?Z ?A -1) nil))
+          (c ?A))
+      (while (<= c ?Z)
+        (aset tbl (- c ?A)
+              (or (cdr (assoc (format "LATIN LETTER SMALL CAPITAL %c" c)
+                              (ucs-names)))
+                  c))
+        (setq c (1+ c)))
+      tbl)))
+
+;;;###autoload
+(defun smallcaps-region (beg end)
+  "Like DOWNCASE-REGION but convert capital letters to small caps instead."
+  (interactive "r")
+  (goto-char beg)
+  (while (< (point) end)
+    (let ((c (upcase (char-after (point)))))
+      (cond ((and (>= c ?A)
+                  (<= c ?Z))
+             (insert-char (aref smallcaps-table (- c ?A)) 1 t)
+             (delete-char 1))
+            (t
+             (forward-char 1))))))
+
+;;;###autoload
+(defun smallcaps-word ()
+  "Like DOWNCASE-WORD but convert capital letters to small caps instead."
+  (interactive)
+  (smallcaps-region (point) (progn (forward-word 1) (point))))
+
+;;;###autoload
+(defun smallcaps-rectangle (beg end)
+  "Convert all capital letters in rectangle to small caps"
+  (interactive "r")
+  (apply-on-rectangle-region-points 'smallcaps-region beg end))
 
 
 ;;; buffer-percentage-mode functions

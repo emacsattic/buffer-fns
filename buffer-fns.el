@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.28 2014/12/12 22:59:16 friedman Exp $
+;; $Id: buffer-fns.el,v 1.29 2015/02/02 04:31:27 friedman Exp $
 
 ;;; Commentary:
 
@@ -39,6 +39,15 @@ of previous VARs."
       (setq mlvs (cons (list 'make-local-variable (list 'quote (car p))) mlvs)
             p    (cdr (cdr p))))
     (cons 'progn (nreverse (cons (cons 'setq pairs) mlvs)))))
+
+(defmacro with-command-output-to-temp-buffer (command &rest body)
+  "Execute inferior COMMAND, putting its contents into a temporary buffer, and evalulate BODY.
+COMMAND should be a string or a list of strings."
+  `(with-temp-buffer
+     (apply 'call-process (car ,command) nil t nil (cdr ,command))
+     ,@body))
+
+(put 'with-command-output-to-temp-buffer 'lisp-indent-function 1)
 
 
 ;;; functions for operating on rectangles

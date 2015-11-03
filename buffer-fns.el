@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.29 2015/02/02 04:31:27 friedman Exp $
+;; $Id: buffer-fns.el,v 1.31 2015/10/19 00:21:30 friedman Exp $
 
 ;;; Commentary:
 
@@ -36,9 +36,10 @@ of previous VARs."
   (let ((p pairs)
         (mlvs nil))
     (while p
-      (setq mlvs (cons (list 'make-local-variable (list 'quote (car p))) mlvs)
+      (setq mlvs (cons (list 'set (list 'make-local-variable (list 'quote (car p))) (cadr p))
+                       mlvs)
             p    (cdr (cdr p))))
-    (cons 'progn (nreverse (cons (cons 'setq pairs) mlvs)))))
+    (cons 'progn (nreverse mlvs))))
 
 (defmacro with-command-output-to-temp-buffer (command &rest body)
   "Execute inferior COMMAND, putting its contents into a temporary buffer, and evalulate BODY.
@@ -80,6 +81,7 @@ COMMAND should be a string or a list of strings."
   (interactive "r")
   (apply-on-rectangle-region-points 'upcase-region beg end))
 
+;;;###autoload
 (defun capitalize-rectangle (beg end)
   "Capitalize all the words in the marked rectangle."
   (interactive "r")
@@ -466,6 +468,24 @@ greater than that many characters."
              (occur re))
             (t
              (message "No lines >= %d characters" width))))))
+
+;;;###autoload
+(defun reverse-characters-region (beg end)
+  "Reverse the order of characters in region."
+  (interactive "r")
+  (let ((len (- end beg)))
+    (setq end (1- end))
+    (goto-char beg)
+    (while (<= beg end)
+      (insert-char (char-after end))
+      (setq beg (1+ beg)))
+    (delete-region beg (+ beg len))))
+
+;;;###autoload
+(defun reverse-characters-rectangle (beg end)
+  "Reverse the order of characters on each line in the rectable."
+  (interactive "r")
+  (apply-on-rectangle-region-points 'reverse-characters-region beg end))
 
 ;;;###autoload
 (defun zippify-region (beg end &optional rand-limit)

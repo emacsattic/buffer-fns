@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.31 2015/10/19 00:21:30 friedman Exp $
+;; $Id: buffer-fns.el,v 1.32 2016/08/22 22:22:59 friedman Exp $
 
 ;;; Commentary:
 
@@ -307,6 +307,36 @@ Page markers are specified with the regexp `page-delimiter'."
   (require 'pp)
   (insert "\n")
   (pp-eval-last-sexp t))
+
+;;;###autoload
+(defun fold-sexp-indent ()
+  "Insert a newline between each member of sexp at point and indent it."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (narrow-to-sexp)
+      (goto-char (point-min))
+      (when (ignore-errors (down-list 1) t)
+        (while (not (looking-at "\\s)"))
+          (cond ((looking-at "\\s-*#<")
+                 (goto-char (match-end 0))
+                 (backward-char 2)
+                 (insert "\\")
+                 (forward-char 3)
+                 (let ((depth 1))
+                   (while (and (> depth 0)
+                               (re-search-forward "\\s-\\|[<>()]" nil t))
+                     (cond ((= (char-before) ?<)
+                            (setq depth (1+ depth)))
+                           ((= (char-before) ?>)
+                            (setq depth (1- depth)))
+                           (t (backward-char)
+                              (insert "\\")
+                              (forward-char))))))
+                (t (forward-sexp)))
+          (insert "\n"))
+        (delete-char -1))))
+  (indent-sexp))
 
 ;;;###autoload
 (defun set-tab-stop-width (width)

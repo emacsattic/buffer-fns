@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.32 2016/08/22 22:22:59 friedman Exp $
+;; $Id: buffer-fns.el,v 1.33 2017/09/10 02:39:44 friedman Exp $
 
 ;;; Commentary:
 
@@ -94,12 +94,15 @@ COMMAND should be a string or a list of strings."
 
 (defconst smallcaps-table
   (when (fboundp 'ucs-names)
-    (let ((tbl (make-vector (- ?Z ?A -1) nil))
-          (c ?A))
+    (let ((ucs (ucs-names))
+          (tbl (make-vector (- ?Z ?A -1) nil))
+          (c ?A) s)
       (while (<= c ?Z)
+        (setq s (format "LATIN LETTER SMALL CAPITAL %c" c))
         (aset tbl (- c ?A)
-              (or (cdr (assoc (format "LATIN LETTER SMALL CAPITAL %c" c)
-                              (ucs-names)))
+              (or (if (hash-table-p ucs)  ;; Emacs 26
+                      (gethash s ucs)
+                    (cdr (assoc s ucs)))
                   c))
         (setq c (1+ c)))
       tbl)))

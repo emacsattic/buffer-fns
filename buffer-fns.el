@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.33 2017/09/10 02:39:44 friedman Exp $
+;; $Id: buffer-fns.el,v 1.34 2017/09/17 23:09:05 friedman Exp $
 
 ;;; Commentary:
 
@@ -235,6 +235,52 @@ If called with no prefix argument, toggle current state."
         (t
          (setq mode-line-inverse-video (not mode-line-inverse-video))
          (force-mode-line-update (not current-only)))))
+
+(defun toggle-variable-command (variable &optional direction enabled-value disabled-value)
+  "Toggle arbitrary VARIABLE whose value might enable or disable a mode.
+Returns new value.
+
+Can be used by wrapper functions which more or less all do the same thing
+other than which variable they modify.
+
+DIRECTION is examined like a command prefix argument: when given a
+universal prefix value, a positive numeric argument, or `t', always set
+VARIABLE to ENABLED-VALUE.
+
+If DIRECTION is the symbol `-' or a negative numeric value, always set
+VARIABLE to DISABLED-VALUE.
+
+If DIRECTION is nil or 0, then set VARIABLE to whichever of ENABLED-VALUE
+or DISABLED-VALUE the variable is current *not* set.  If it is not
+currently set to either one of them, ENABLED-VALUE is chosen.
+Comparison against the current value is done with `equal'.
+
+ENABLED-VALUE defaults to `t'.
+DISABLED-VALUE defaults to nil."
+  (unless (boundp variable) (set variable nil))
+  (unless enabled-value    (setq enabled-value t))
+
+  (cond ((or (eq direction t)
+             (consp direction)
+             (and (numberp direction) (> direction 0)))
+         (set variable enabled-value))
+
+        ((or (eq direction '-)
+             (and (numberp direction) (< direction 0)))
+         (set variable disabled-value))
+
+        ((or (null direction)
+             (and (numberp direction) (= direction 0)))
+
+         (if (equal (symbol-value variable) enabled-value)
+             (set variable disabled-value)
+           (set variable enabled-value)))
+
+        (t
+         (error (format "%s: Unrecognized direction specified for toggling %s"
+                        direction variable))))
+
+  (symbol-value variable))
 
 ;;;###autoload
 (defun bell-flash-mode-line ()

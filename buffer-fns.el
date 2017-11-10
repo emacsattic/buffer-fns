@@ -3,7 +3,7 @@
 ;; Author: Noah Friedman <friedman@splode.com>
 ;; Public domain.
 
-;; $Id: buffer-fns.el,v 1.34 2017/09/17 23:09:05 friedman Exp $
+;; $Id: buffer-fns.el,v 1.35 2017/11/03 19:52:30 friedman Exp $
 
 ;;; Commentary:
 
@@ -677,6 +677,22 @@ This only removes text properties, not overlays."
 
 
 ;;; Misc buffer functions
+
+(defun find-buffers-named (name &optional re)
+"Return a list of all buffers named NAME or matching NAME.
+Optional arg RE non-nil means NAME is a regular expression.
+
+When NAME is not a regular expression, the name must match exactly
+so no more than one buffer could ever be returned."
+  (let ((matches))
+    (save-match-data
+      (mapc (lambda (buffer)
+              (if (cond (re (string-match name (buffer-name buffer)))
+                        (t         (equal name (buffer-name buffer))))
+                  (setq matches (cons buffer matches))))
+        (buffer-list)))
+    ;; Return matches in the same order they would appear in buffer list.
+    (nreverse matches)))
 
 ;;;###autoload
 (defun kill-all-buffers (&optional confirm)
